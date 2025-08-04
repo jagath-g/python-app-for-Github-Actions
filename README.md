@@ -1,5 +1,7 @@
 # Secure Python Web App CI/CD with Multi-Architecture Docker & Cloud Integration
 
+<img src="https://github.com/bhuvan-raj/python-app-for-Github-Actions/blob/main//cicd.png" alt="Banner" />
+
 ## Project Overview
 
 Welcome to the Secure Python Web App CI/CD Project\! This repository provides you with a basic Python Flask web application and challenges you to build a robust, industry-level Continuous Integration/Continuous Delivery (CI/CD) pipeline using GitHub Actions.
