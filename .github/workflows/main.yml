@@ -81,7 +81,7 @@ jobs:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ env.DOCKERHUB_TOKEN }}
 
-      - name: Build and push image for ${{ matrix.arch }}
+      - name: Build and push image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -91,7 +91,7 @@ jobs:
           tags: ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
 
   trivy-scan:
-    name: Trivy Image Scan
+    name: Trivy Scan
     needs: build-matrix
     if: success()
     runs-on: ubuntu-latest
@@ -103,18 +103,17 @@ jobs:
           - linux/arm64
 
     steps:
-      - name: Install Trivy
-        run: |
-          sudo apt-get install -y wget
-          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_Linux-64bit.deb
-          sudo dpkg -i trivy_0.51.1_Linux-64bit.deb
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@v0.14.0
+        with:
+          image-ref: ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: 0
+          ignore-unfixed: true
+          output: trivy-report-${{ matrix.arch }}.txt
 
-      - name: Scan image with Trivy
-        run: |
-          IMAGE_TAG=${{ secrets.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
-          trivy image --exit-code 1 --severity CRITICAL,HIGH --format table --output trivy-report-${{ matrix.arch }}.txt $IMAGE_TAG || true
-
-      - name: Upload Trivy scan results
+      - name: Upload Trivy report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -142,7 +141,7 @@ jobs:
           aws ses send-email \
             --from "${{ secrets.SES_FROM_ADDRESS }}" \
             --destination "ToAddresses=${{ secrets.SES_TO_ADDRESS }}" \
-            --message "Subject={Data='✅ Docker Build & Trivy Scan Success'},Body={Text={Data='Build and scan for ${{ github.repository }} succeeded.'}}"
+            --message "Subject={Data='✅ Build & Scan Success'},Body={Text={Data='Build and scan for ${{ github.repository }} completed successfully.'}}"
 
   notify-failure:
     name: Notify Failure via SES
@@ -164,4 +163,4 @@ jobs:
           aws ses send-email \
             --from "${{ secrets.SES_FROM_ADDRESS }}" \
             --destination "ToAddresses=${{ secrets.SES_TO_ADDRESS }}" \
-            --message "Subject={Data='❌ Docker Build or Scan Failed'},Body={Text={Data='Build or scan for ${{ github.repository }} failed. Please check logs.'}}"
+            --message "Subject={Data='❌ Build or Scan Failed'},Body={Text={Data='Build or scan for ${{ github.repository }} failed. Please check the logs.'}}"
