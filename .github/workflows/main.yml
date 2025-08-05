@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: write  # For OIDC with AWS
+  id-token: write  # For OIDC AWS auth
 
 jobs:
 
@@ -90,10 +90,54 @@ jobs:
           push: true
           tags: ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
 
-  trivy-scan:
-    name: Trivy Scan
+  notify-success:
+    name: Notify Success via SES
     needs: build-matrix
     if: success()
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::399359779313:role/secrer_role
+          aws-region: us-east-1
+
+      - name: Send SES success email
+        run: |
+          aws ses send-email \
+            --from "${{ secrets.SES_FROM_ADDRESS }}" \
+            --destination "ToAddresses=${{ secrets.SES_TO_ADDRESS }}" \
+            --message "Subject={Data='✅ Build & Scan Success'},Body={Text={Data='Build and push for ${{ github.repository }} completed successfully.'}}"
+
+  notify-failure:
+    name: Notify Failure via SES
+    needs: build-matrix
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::399359779313:role/secrer_role
+          aws-region: us-east-1
+
+      - name: Send SES failure email
+        run: |
+          aws ses send-email \
+            --from "${{ secrets.SES_FROM_ADDRESS }}" \
+            --destination "ToAddresses=${{ secrets.SES_TO_ADDRESS }}" \
+            --message "Subject={Data='❌ Build Failed'},Body={Text={Data='Build for ${{ github.repository }} failed. Please check the logs.'}}"
+
+  trivy-scan:
+    name: Trivy Vulnerability Scan
+    needs: notify-success
     runs-on: ubuntu-latest
 
     strategy:
@@ -119,48 +163,3 @@ jobs:
         with:
           name: trivy-report-${{ matrix.arch }}
           path: trivy-report-${{ matrix.arch }}.txt
-
-  notify-success:
-    name: Notify Success via SES
-    needs: [build-matrix, trivy-scan]
-    if: success()
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::399359779313:role/secrer_role
-          aws-region: us-east-1
-
-      - name: Send SES success email
-        run: |
-          aws ses send-email \
-            --from "${{ secrets.SES_FROM_ADDRESS }}" \
-            --destination "ToAddresses=${{ secrets.SES_TO_ADDRESS }}" \
-            --message "Subject={Data='✅ Build & Scan Success'},Body={Text={Data='Build and scan for ${{ github.repository }} completed successfully.'}}"
-
-  notify-failure:
-    name: Notify Failure via SES
-    needs: [build-matrix, trivy-scan]
-    if: failure()
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::399359779313:role/secrer_role
-          aws-region: us-east-1
-
-      - name: Send SES failure email
-        run: |
-          aws ses send-email \
-            --from "${{ secrets.SES_FROM_ADDRESS }}" \
-            --destination "ToAddresses=${{ secrets.SES_TO_ADDRESS }}" \
-            --message "Subject={Data='❌ Build or Scan Failed'},Body={Text={Data='Build or scan for ${{ github.repository }} failed. Please check logs.'}}"
