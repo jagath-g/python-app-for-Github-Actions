@@ -69,5 +69,4 @@ jobs:
           push: true
           tags: your-dockerhub-username/python-flask-app:${{ github.sha }}-${{ matrix.arch }}
 
-      - name: Echo Image Tag
-        run: echo "Image: your-dockerhub-username/python-flask-app:${{ github.sha }}-${{ matrix.arch }}"
+
