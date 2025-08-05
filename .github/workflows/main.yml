@@ -169,7 +169,9 @@ jobs:
 
       - name: Pull image for scanning
         run: |
-          docker pull ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+          docker pull --platform linux/${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }} \
+           ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+
 
       - name: Install Trivy via APT (recommended)
         run: |
