@@ -148,7 +148,8 @@ jobs:
 
     steps:
       - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@v0.11.2
+        uses: aquasecurity/trivy-action@0.17.0
+
         with:
           image-ref: ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
           format: table
