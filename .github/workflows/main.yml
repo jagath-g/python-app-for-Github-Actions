@@ -89,3 +89,46 @@ jobs:
           platforms: ${{ matrix.arch }}
           push: true
           tags: ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+
+  notify-success:
+    name: Notify Success via SES
+    needs: build-matrix
+    if: success()
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::399359779313:role/secrer_role
+          aws-region: us-east-1
+
+      - name: Send SES success email
+        run: |
+          aws ses send-email \
+            --from "${{ secrets.SES_FROM_ADDRESS }}" \
+            --destination "ToAddresses=${{ secrets.SES_TO_ADDRESS }}" \
+            --message "Subject={Data='✅ Docker Build Success'},Body={Text={Data='Build and scan for ${{ github.repository }} succeeded.'}}"
+
+  notify-failure:
+    name: Notify Failure via SES
+    needs: build-matrix
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::399359779313:role/secrer_role
+          aws-region: us-east-1
+
+      - name: Send SES failure email
+        run: |
+          aws ses send-email \
+            --from "${{ secrets.SES_FROM_ADDRESS }}" \
+            --destination "ToAddresses=${{ secrets.SES_TO_ADDRESS }}" \
+            --message "Subject={Data='❌ Docker Build Failed'},Body={Text={Data='Build
