@@ -74,7 +74,7 @@ jobs:
             --query SecretString --output text)
 
           echo "DOCKERHUB_USERNAME=$(echo $SECRET_JSON | jq -r .DOCKERHUB_USERNAME)" >> $GITHUB_ENV
-          echo "TOKEN=$(echo $SECRET_JSON | jq -r .TOKEN)" >> $GITHUB_ENV
+          echo "TOKEN=$(echo $SECRET_JSON | jq -r .DOCKERHUB_TOKEN)" >> $GITHUB_ENV
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
