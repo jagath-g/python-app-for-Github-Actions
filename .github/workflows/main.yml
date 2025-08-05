@@ -37,36 +37,3 @@ jobs:
         with:
           name: pytest-results
           path: pytest-results.xml
-
-  # c. Build Multi-Architecture Docker Images
-  build-and-push:
-    name: Build Multi-Arch Docker Image
-    runs-on: ubuntu-latest
-    needs: run-unit-tests
-
-    strategy:
-      matrix:
-        arch: [linux/amd64, linux/arm64]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push multi-arch image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: ${{ matrix.arch }}
-          push: true
-          tags: your-dockerhub-username/python-flask-app:${{ github.sha }}-${{ matrix.arch }}
-
-
