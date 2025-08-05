@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+permissions:
+  contents: read
+  packages: write
+  id-token: write  # REQUIRED for OIDC authentication
+
 
 jobs:
 
