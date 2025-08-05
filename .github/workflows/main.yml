@@ -90,23 +90,6 @@ jobs:
           push: true
           tags: ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
 
-      - name: Install Trivy
-        run: |
-          sudo apt-get install -y wget
-          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_Linux-64bit.deb
-          sudo dpkg -i trivy_0.51.1_Linux-64bit.deb
-
-      - name: Run Trivy image scan
-        run: |
-          IMAGE_TAG=${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
-          trivy image --exit-code 1 --severity CRITICAL,HIGH --format table --output trivy-report-${{ matrix.arch }}.txt $IMAGE_TAG || true
-
-      - name: Upload Trivy scan results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-report-${{ matrix.arch }}
-          path: trivy-report-${{ matrix.arch }}.txt
 
   notify-success:
     name: Notify Success via SES
@@ -152,3 +135,20 @@ jobs:
             --from "${{ secrets.SES_FROM_ADDRESS }}" \
             --destination "ToAddresses=${{ secrets.SES_TO_ADDRESS }}" \
             --message "Subject={Data='❌ Docker Build Failed'},Body={Text={Data='Build or scan for ${{ github.repository }} failed. Please check logs.'}}"
+      - name: Install Trivy
+        run: |
+          sudo apt-get install -y wget
+          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_Linux-64bit.deb
+          sudo dpkg -i trivy_0.51.1_Linux-64bit.deb
+
+      - name: Run Trivy image scan
+        run: |
+          IMAGE_TAG=${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+          trivy image --exit-code 1 --severity CRITICAL,HIGH --format table --output trivy-report-${{ matrix.arch }}.txt $IMAGE_TAG || true
+
+      - name: Upload Trivy scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report-${{ matrix.arch }}
+          path: trivy-report-${{ matrix.arch }}.txt
