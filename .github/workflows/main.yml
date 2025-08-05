@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: write
+  id-token: write  # For OIDC with AWS
 
 jobs:
 
@@ -104,7 +104,7 @@ jobs:
 
     steps:
       - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@v0.14.0
+        uses: aquasecurity/trivy-action@v0.11.2
         with:
           image-ref: ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
           format: table
@@ -163,4 +163,4 @@ jobs:
           aws ses send-email \
             --from "${{ secrets.SES_FROM_ADDRESS }}" \
             --destination "ToAddresses=${{ secrets.SES_TO_ADDRESS }}" \
-            --message "Subject={Data='❌ Build or Scan Failed'},Body={Text={Data='Build or scan for ${{ github.repository }} failed. Please check the logs.'}}"
+            --message "Subject={Data='❌ Build or Scan Failed'},Body={Text={Data='Build or scan for ${{ github.repository }} failed. Please check logs.'}}"
