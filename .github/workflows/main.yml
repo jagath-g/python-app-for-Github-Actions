@@ -67,7 +67,6 @@ jobs:
           aws-region: us-east-1
 
       - name: Retrieve DockerHub credentials from AWS Secrets Manager
-        id: secrets
         run: |
           sudo apt-get install jq -y
           SECRET_JSON=$(aws secretsmanager get-secret-value \
@@ -171,11 +170,13 @@ jobs:
         run: |
           docker pull ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
 
-      - name: Install Trivy
+      - name: Install Trivy via APT (recommended)
         run: |
-          sudo apt-get install wget -y
-          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.49.1_Linux-64bit.deb
-          sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
+          sudo apt-get update && sudo apt-get install gnupg lsb-release wget -y
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy -y
 
       - name: Trivy Scan Local Image
         run: |
