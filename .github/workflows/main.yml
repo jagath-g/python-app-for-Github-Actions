@@ -52,11 +52,30 @@ jobs:
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::399359779313:role/secrer_role
-          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::399359779313:role/secrer_role  # Replace with your actual role
+          aws-region: us-east-1                                       # Replace with your region
 
       - name: Retrieve DockerHub credentials from AWS Secrets Manager
         id: secrets
         run: |
           SECRET_JSON=$(aws secretsmanager get-secret-value \
-            --secret-id ${{ secret
+            --secret-id docker-credentials \
+            --query SecretString --output text)
+
+          echo "DOCKERHUB_USERNAME=$(echo $SECRET_JSON | jq -r .DOCKERHUB_USERNAME)" >> $GITHUB_ENV
+          echo "TOKEN=$(echo $SECRET_JSON | jq -r .TOKEN)" >> $GITHUB_ENV
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.TOKEN }}
+
+      - name: Build and push multi-arch Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:latest, ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}
