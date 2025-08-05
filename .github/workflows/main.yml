@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: write  # REQUIRED for OIDC authentication
+  id-token: write  # Required for OIDC (AWS auth)
 
 jobs:
 
@@ -43,7 +43,7 @@ jobs:
           path: pytest-results.xml
 
   build-matrix:
-    name: Build Multi-Arch Image
+    name: Build & Push Multi-Architecture Images
     runs-on: ubuntu-latest
     needs: run-unit-tests
 
@@ -63,7 +63,7 @@ jobs:
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::399359779313:role/secrer_role
+          role-to-assume: arn:aws:iam::399359779313:role/secrer_role  # Replace with your IAM role ARN
           aws-region: us-east-1
 
       - name: Retrieve DockerHub credentials from AWS Secrets Manager
@@ -88,4 +88,4 @@ jobs:
           file: ./Dockerfile
           platforms: ${{ matrix.arch }}
           push: true
-          tags: ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch }}
+          tags: ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
