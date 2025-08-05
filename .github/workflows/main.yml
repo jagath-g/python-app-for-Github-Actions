@@ -133,6 +133,7 @@ jobs:
   trivy-scan:
     name: Trivy Vulnerability Scan
     needs: notify-success
+    timeout-minutes: 15
     runs-on: ubuntu-latest
 
     strategy:
