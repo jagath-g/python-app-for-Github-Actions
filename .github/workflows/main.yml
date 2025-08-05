@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: write  # For OIDC AWS auth
+  id-token: write
 
 jobs:
 
@@ -153,7 +153,6 @@ jobs:
           aws-region: us-east-1
 
       - name: Retrieve DockerHub credentials from AWS Secrets Manager
-        id: secrets
         run: |
           sudo apt-get install jq -y
           SECRET_JSON=$(aws secretsmanager get-secret-value \
