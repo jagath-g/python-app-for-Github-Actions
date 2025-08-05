@@ -70,7 +70,7 @@ jobs:
         id: secrets
         run: |
           SECRET_JSON=$(aws secretsmanager get-secret-value \
-            --secret-id docker-credentials \
+            --secret-id new_secret2323 \
             --query SecretString --output text)
 
           echo "DOCKERHUB_USERNAME=$(echo $SECRET_JSON | jq -r .DOCKERHUB_USERNAME)" >> $GITHUB_ENV
