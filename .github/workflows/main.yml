@@ -190,4 +190,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trivy-report-${{ matrix.arch }}
-          path: trivy-report/trivy-report-${{ matrix.arch }}/report.txt
+          path: trivy-report-trivy-report-${{ matrix.arch }}-report.txt
