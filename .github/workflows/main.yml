@@ -187,7 +187,6 @@ jobs:
             ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
 
       - name: Upload Trivy report
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trivy-report-${{ matrix.arch }}
