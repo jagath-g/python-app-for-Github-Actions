@@ -1,0 +1,29 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "ECRLogin",
+			"Effect": "Allow",
+			"Action": [
+				"ecr:GetAuthorizationToken"
+			],
+			"Resource": "*"
+		},
+		{
+			"Sid": "ECRPushPull",
+			"Effect": "Allow",
+			"Action": [
+				"ecr:BatchCheckLayerAvailability",
+				"ecr:GetDownloadUrlForLayer",
+				"ecr:PutImage",
+				"ecr:InitiateLayerUpload",
+				"ecr:UploadLayerPart",
+				"ecr:CompleteLayerUpload"
+			],
+			"Resource": [
+				"arn:aws:ecr:us-east-1:399359779313:repository/python-flask-app",
+				"arn:aws:ecr:us-east-1:399359779313:repository/python-flask-app"
+			]
+		}
+	]
+}
