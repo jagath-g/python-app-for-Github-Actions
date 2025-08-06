@@ -176,18 +176,36 @@ jobs:
 
       - name: Trivy Scan Local Image
         run: |
-          mkdir -p trivy-report/trivy-report-${{ matrix.arch }}
+          mkdir -p trivy-report/trivy-report-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
           trivy image \
             --format table \
             --exit-code 0 \
             --ignore-unfixed \
             --pkg-types os,library \
             --severity CRITICAL,HIGH \
-            --output trivy-report/trivy-report-${{ matrix.arch }}/report.txt \
+            --output trivy-report/trivy-report-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}/report.txt \
             ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Tag Docker image for ECR
+        run: |
+          IMAGE_NAME=my-image
+          IMAGE_TAG=latest
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          docker tag $IMAGE_NAME:$IMAGE_TAG $ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+
+      - name: Push Docker image to ECR
+        run: |
+          IMAGE_NAME=my-image
+          IMAGE_TAG=latest
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          docker push $ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
 
       - name: Upload Trivy report
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-report-${{ matrix.arch }}
-          path: trivy-report-trivy-report-${{ matrix.arch }}-report.txt
+          name: trivy-report-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+          path: trivy-report/trivy-report-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}/report.txt
