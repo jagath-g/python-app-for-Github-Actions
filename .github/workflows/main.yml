@@ -128,7 +128,7 @@ jobs:
             --message "Subject={Data='❌ Build Failed'},Body={Text={Data='Build for ${{ github.repository }} failed. Please check the logs.'}}"
 
   trivy-scan:
-    name: Trivy Vulnerability Scan
+    name: Trivy Vulnerability Scan & Push to ECR
     needs: notify-success
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -164,8 +164,9 @@ jobs:
 
       - name: Pull image for scanning
         run: |
-          docker pull --platform linux/${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }} \
-            ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+          ARCH=${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+          docker pull --platform linux/$ARCH \
+            ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-$ARCH
 
       - name: Install Trivy
         run: |
@@ -176,19 +177,32 @@ jobs:
 
       - name: Trivy Scan Local Image
         run: |
-          mkdir -p trivy-report/trivy-report-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+          ARCH=${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+          mkdir -p trivy-report/trivy-report-$ARCH
           trivy image \
             --format table \
             --exit-code 0 \
             --ignore-unfixed \
             --pkg-types os,library \
             --severity CRITICAL,HIGH \
-            --output trivy-report/trivy-report-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}/report.txt \
-            ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
-
+            --output trivy-report/trivy-report-$ARCH/report.txt \
+            ${{ env.DOCKERHUB_USERNAME }}/python-flask-app:${{ github.sha }}-$ARCH
 
       - name: Upload Trivy report
         uses: actions/upload-artifact@v4
         with:
           name: trivy-report-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
           path: trivy-report/trivy-report-${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}/report.txt
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Tag and Push Docker image to ECR
+        run: |
+          IMAGE_NAME=python-flask-app
+          ARCH=${{ matrix.arch == 'linux/amd64' && 'amd64' || 'arm64' }}
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          docker tag ${{ env.DOCKERHUB_USERNAME }}/$IMAGE_NAME:${{ github.sha }}-$ARCH \
+                     $ECR_REGISTRY/$IMAGE_NAME:$ARCH
+          docker push $ECR_REGISTRY/$IMAGE_NAME:$ARCH
